@@ -1,0 +1,5 @@
+{
+  "name": "Olas Home Paracas - Cotizador",
+  "description": "Una aplicación elegante para cotizar estancias vacacionales en Paracas, con cálculo automático de tarifas e integración con WhatsApp.",
+  "requestFramePermissions": []
+}
