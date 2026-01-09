@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { Calendar, Users, Search, ChevronDown } from 'lucide-react';
-import { QuoteData } from '../types';
-import { MAX_TOTAL_GUESTS } from '../constants';
+import { QuoteData } from '../types.ts';
+import { MAX_TOTAL_GUESTS } from '../constants.ts';
 
 interface BookingFormProps {
   onQuote: (data: QuoteData) => void;
@@ -26,49 +26,47 @@ export const BookingForm: React.FC<BookingFormProps> = ({ onQuote }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4">
-      <div className="bg-white/95 backdrop-blur-sm p-6 md:p-8 rounded-[2.5rem] shadow-2xl">
+      <div className="bg-white/95 backdrop-blur-sm p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-white/40">
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-center gap-4">
           {/* Fecha Ingreso */}
-          <div className="w-full md:flex-1 bg-gray-50 rounded-2xl p-4 border border-transparent hover:border-blue-200 transition-all">
-            <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+          <div className="w-full md:flex-1 bg-gray-50 rounded-2xl p-4 border border-gray-100 hover:border-blue-200 transition-all focus-within:ring-2 focus-within:ring-blue-100">
+            <label className="flex items-center gap-2 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">
               <Calendar size={14} className="text-blue-500" />
               Fecha Ingreso
             </label>
-            <div className="relative">
-              <input
-                type="date"
-                className="w-full bg-transparent text-gray-800 font-semibold focus:outline-none text-sm cursor-pointer"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-              />
-            </div>
+            <input
+              type="date"
+              className="w-full bg-transparent text-gray-800 font-bold focus:outline-none text-sm cursor-pointer"
+              value={checkIn}
+              onChange={(e) => setCheckIn(e.target.value)}
+              required
+            />
           </div>
 
           {/* Fecha Salida */}
-          <div className="w-full md:flex-1 bg-gray-50 rounded-2xl p-4 border border-transparent hover:border-blue-200 transition-all">
-            <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+          <div className="w-full md:flex-1 bg-gray-50 rounded-2xl p-4 border border-gray-100 hover:border-blue-200 transition-all focus-within:ring-2 focus-within:ring-blue-100">
+            <label className="flex items-center gap-2 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">
               <Calendar size={14} className="text-blue-500" />
-              Fecha de Salida
+              Fecha Salida
             </label>
-            <div className="relative">
-              <input
-                type="date"
-                className="w-full bg-transparent text-gray-800 font-semibold focus:outline-none text-sm cursor-pointer"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-              />
-            </div>
+            <input
+              type="date"
+              className="w-full bg-transparent text-gray-800 font-bold focus:outline-none text-sm cursor-pointer"
+              value={checkOut}
+              onChange={(e) => setCheckOut(e.target.value)}
+              required
+            />
           </div>
 
           {/* Número de Personas */}
-          <div className="w-full md:flex-1 bg-gray-50 rounded-2xl p-4 border border-transparent hover:border-blue-200 transition-all relative">
-            <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+          <div className="w-full md:flex-1 bg-gray-50 rounded-2xl p-4 border border-gray-100 hover:border-blue-200 transition-all relative">
+            <label className="flex items-center gap-2 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">
               <Users size={14} className="text-blue-500" />
-              Número de Personas
+              Personas
             </label>
             <div className="flex items-center justify-between">
               <select
-                className="w-full bg-transparent text-gray-800 font-semibold focus:outline-none text-sm appearance-none cursor-pointer"
+                className="w-full bg-transparent text-gray-800 font-bold focus:outline-none text-sm appearance-none cursor-pointer"
                 value={guests}
                 onChange={(e) => setGuests(Number(e.target.value))}
               >
@@ -85,20 +83,22 @@ export const BookingForm: React.FC<BookingFormProps> = ({ onQuote }) => {
           {/* Botón Cotizar */}
           <button
             type="submit"
-            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-5 rounded-3xl font-bold flex items-center justify-center gap-3 transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-200"
+            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-5 rounded-3xl font-black flex items-center justify-center gap-3 transition-all transform hover:scale-[1.03] active:scale-95 shadow-xl shadow-blue-200"
           >
-            <Search size={20} strokeWidth={3} />
-            <span className="whitespace-nowrap">Cotizar ahora</span>
+            <Search size={22} strokeWidth={3} />
+            <span className="whitespace-nowrap uppercase tracking-wider text-sm">Cotizar ahora</span>
           </button>
         </form>
 
         <div className="flex justify-center gap-8 mt-6">
-          <button className="text-xs font-semibold px-4 py-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-            Fechas exactas
-          </button>
-          <button className="text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors">
-            Mínimo 1 noche
-          </button>
+          <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+            Disponibilidad inmediata
+          </div>
+          <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+            Mejor precio garantizado
+          </div>
         </div>
       </div>
     </div>
