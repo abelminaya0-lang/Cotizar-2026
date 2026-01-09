@@ -49,8 +49,8 @@ const App: React.FC = () => {
           <h2 className="text-white text-5xl md:text-8xl font-black mb-4 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] tracking-tighter italic">
             Cotizar mi estadía
           </h2>
-          <p className="text-white/90 text-lg md:text-xl font-medium max-w-2xl mx-auto drop-shadow-md">
-            Vive la exclusividad frente a la Reserva Nacional de Paracas.
+          <p className="text-white text-lg md:text-2xl font-black max-w-3xl mx-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] tracking-widest uppercase">
+            VIVE LA EXPERIENCIA CON DEPARTAMENTOS FRENTE AL MAR
           </p>
         </div>
 
