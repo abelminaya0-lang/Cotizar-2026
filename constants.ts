@@ -1,5 +1,6 @@
 
-export const BASE_RATE_PER_NIGHT = 160;
+export const BASE_RATE_WEEKDAY = 160;
+export const BASE_RATE_WEEKEND = 180;
 export const MAX_BASE_GUESTS = 2;
 export const MAX_TOTAL_GUESTS = 12;
 export const EXTRA_GUEST_FEE_PER_NIGHT = 7;

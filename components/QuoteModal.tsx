@@ -3,7 +3,8 @@ import React from 'react';
 import { X, MessageCircle, Minus, Plus, Sparkles, TrendingDown, ArrowRight, Info } from 'lucide-react';
 import { QuoteData } from '../types.ts';
 import { 
-  BASE_RATE_PER_NIGHT, 
+  BASE_RATE_WEEKDAY,
+  BASE_RATE_WEEKEND,
   EXTRA_GUEST_FEE_PER_NIGHT, 
   MAX_BASE_GUESTS,
   MAX_TOTAL_GUESTS,
@@ -21,47 +22,70 @@ interface QuoteModalProps {
 export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, setData }) => {
   if (!isOpen) return null;
 
-  const calculateForNights = (n: number, g: number) => {
-    const baseTotal = n * BASE_RATE_PER_NIGHT;
-    const extraGuests = Math.max(0, g - MAX_BASE_GUESTS);
-    const extraFee = extraGuests * EXTRA_GUEST_FEE_PER_NIGHT * n;
-    const subtotal = baseTotal + extraFee;
-    const discount = n >= 2 ? subtotal * MULTI_NIGHT_DISCOUNT : 0;
-    return { subtotal, discount, total: subtotal - discount };
+  const calculateForNights = (checkIn: string, checkOut: string, numGuests: number) => {
+    const start = new Date(checkIn + 'T00:00:00');
+    const end = new Date(checkOut + 'T00:00:00');
+    const extraGuests = Math.max(0, numGuests - MAX_BASE_GUESTS);
+    
+    let weekdaySubtotal = 0;
+    let weekendSubtotal = 0;
+    let nights = 0;
+    
+    const currentDay = new Date(start);
+    while (currentDay < end) {
+      const dayOfWeek = currentDay.getDay(); // 0: Dom, 1: Lun, ..., 5: Vie, 6: Sab
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6;
+      
+      const nightBaseRate = isWeekend ? BASE_RATE_WEEKEND : BASE_RATE_WEEKDAY;
+      const nightExtraFee = extraGuests * EXTRA_GUEST_FEE_PER_NIGHT;
+      const nightTotal = nightBaseRate + nightExtraFee;
+
+      if (isWeekend) {
+        weekendSubtotal += nightTotal;
+      } else {
+        weekdaySubtotal += nightTotal;
+      }
+      
+      nights++;
+      currentDay.setDate(currentDay.getDate() + 1);
+    }
+
+    if (nights === 0) nights = 1;
+
+    // El descuento del 10% solo aplica sobre la parte de días de semana
+    // y solo si la estadía total es de 2 o más noches.
+    const discountAmount = nights >= 2 ? weekdaySubtotal * MULTI_NIGHT_DISCOUNT : 0;
+    const subtotal = weekdaySubtotal + weekendSubtotal;
+    const total = subtotal - discountAmount;
+
+    return { nights, subtotal, discountAmount, total, weekdaySubtotal, weekendSubtotal };
   };
 
-  const calculateResults = () => {
-    const start = new Date(data.checkIn);
-    const end = new Date(data.checkOut);
-    const timeDiff = Math.abs(end.getTime() - start.getTime());
-    const nights = Math.max(1, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+  const results = calculateForNights(data.checkIn, data.checkOut, data.guests);
+  const originalPricePerNight = results.subtotal / results.nights;
+  const discountedPricePerNight = results.total / results.nights;
+
+  // Lógica de Upselling: Solo sugerir si hay días de semana involucrados que generen descuento
+  let promoInfo: { totalWithDiscount: number, savings: number, pricePerNight: number } | undefined;
+  if (results.nights === 1) {
+    const hypStart = new Date(data.checkIn + 'T00:00:00');
+    const hypEnd = new Date(hypStart);
+    hypEnd.setDate(hypEnd.getDate() + 2);
     
-    const current = calculateForNights(nights, data.guests);
-    const originalPricePerNight = current.subtotal / nights;
-    const discountedPricePerNight = current.total / nights;
-    
-    let promoInfo: { totalWithDiscount: number, savings: number, pricePerNight: number } | undefined;
-    if (nights === 1) {
-      const twoNights = calculateForNights(2, data.guests);
+    const hypResults = calculateForNights(
+      data.checkIn, 
+      hypEnd.toISOString().split('T')[0], 
+      data.guests
+    );
+
+    if (hypResults.discountAmount > 0) {
       promoInfo = {
-        totalWithDiscount: twoNights.total,
-        savings: twoNights.discount,
-        pricePerNight: twoNights.total / 2
+        totalWithDiscount: hypResults.total,
+        savings: hypResults.discountAmount,
+        pricePerNight: hypResults.total / 2
       };
     }
-    
-    return {
-      nights,
-      subtotal: current.subtotal,
-      discountAmount: current.discount,
-      total: current.total,
-      originalPricePerNight,
-      discountedPricePerNight,
-      promoInfo
-    };
-  };
-
-  const results = calculateResults();
+  }
 
   const handleUpdateGuests = (delta: number) => {
     setData(prev => ({
@@ -71,10 +95,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, s
   };
 
   const handleAcceptOffer = () => {
-    const startDate = new Date(data.checkIn);
+    const startDate = new Date(data.checkIn + 'T00:00:00');
     const newEndDate = new Date(startDate);
     newEndDate.setDate(startDate.getDate() + 2);
-    
     setData(prev => ({
       ...prev,
       checkOut: newEndDate.toISOString().split('T')[0]
@@ -82,7 +105,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, s
   };
 
   const handleWhatsApp = () => {
-    const message = `¡Hola Olas Home Paracas! 👋\n\nMe gustaría confirmar mi estadía:\n📅 Ingreso: ${data.checkIn}\n📅 Salida: ${data.checkOut}\n👥 Personas: ${data.guests}\n🌙 Noches: ${results.nights}\n💰 Total: $${results.total} USD\n\n¿Me podrían ayudar con la reserva?`;
+    const message = `¡Hola Olas Home Paracas! 👋\n\nMe gustaría confirmar mi estadía:\n📅 Ingreso: ${data.checkIn}\n📅 Salida: ${data.checkOut}\n👥 Personas: ${data.guests}\n🌙 Noches: ${results.nights}\n💰 Total: $${results.total.toFixed(0)} USD\n\n¿Me podrían ayudar con la reserva?`;
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
@@ -104,7 +127,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, s
             </div>
             <h2 className="text-3xl font-black tracking-tight">Tu Cotización</h2>
           </div>
-          <p className="text-blue-100/70 text-sm font-medium">Estás a un paso de la playa</p>
+          <p className="text-blue-100/70 text-sm font-medium">Tarifas L-J $160 | V-D $180</p>
         </div>
 
         {/* Content */}
@@ -129,41 +152,48 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, s
           </div>
 
           <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 text-center">
-            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Tarifa por noche</h4>
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Promedio por noche</h4>
             <div className="flex flex-col items-center gap-1">
               <div className="flex items-center gap-3">
                 {results.discountAmount > 0 && (
                   <span className="text-2xl font-bold text-gray-300 line-through decoration-red-400/50 decoration-2">
-                    ${results.originalPricePerNight.toFixed(0)}
+                    ${originalPricePerNight.toFixed(0)}
                   </span>
                 )}
                 <div className="flex items-baseline gap-1">
                   <span className={`text-6xl font-black ${results.discountAmount > 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
-                    ${results.discountedPricePerNight.toFixed(0)}
+                    ${discountedPricePerNight.toFixed(0)}
                   </span>
                   <span className="text-gray-400 text-sm font-black uppercase tracking-widest">USD</span>
                 </div>
               </div>
-              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-tight mt-2">
-                {results.discountAmount > 0 ? '✨ Tarifa especial aplicada' : 'Tarifa estándar'}
-              </p>
+              <div className="flex flex-col gap-1 mt-2">
+                <p className="text-[11px] text-gray-500 font-bold uppercase tracking-tight">
+                  {results.discountAmount > 0 ? '✨ Descuento aplicado (L-J)' : 'Tarifa estándar según día'}
+                </p>
+                {results.weekendSubtotal > 0 && results.discountAmount > 0 && (
+                  <p className="text-[9px] text-gray-400 font-medium italic">
+                    * El descuento del 10% no aplica a Viernes, Sábados o Domingos.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {results.promoInfo && results.nights === 1 && (
+          {promoInfo && (
             <div className="bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-orange-200 rounded-[2.5rem] p-6 relative overflow-hidden group shadow-lg">
               <div className="relative z-10 flex flex-col items-center text-center">
                 <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
-                  <TrendingDown size={14} /> Oferta Imperdible
+                  <TrendingDown size={14} /> Oferta Semanal
                 </div>
                 <p className="text-amber-900 text-sm font-semibold mb-5 leading-relaxed">
-                  Baja tu tarifa diaria a <span className="text-lg font-black text-orange-600">${results.promoInfo.pricePerNight.toFixed(0)}</span> reservando una noche adicional.
+                  ¡Ahorra <span className="text-orange-600 font-black">${promoInfo.savings.toFixed(0)} USD</span> en tus días de semana reservando 2 noches!
                 </p>
                 <button 
                   onClick={handleAcceptOffer}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all transform hover:scale-[1.03] shadow-lg shadow-orange-200"
                 >
-                  ¡Quiero el descuento ahora!
+                  ¡Quiero el descuento!
                   <ArrowRight size={18} />
                 </button>
               </div>
@@ -177,10 +207,10 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, s
                 <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total de la estadía</p>
                 <div className="flex items-center gap-2 text-xs text-blue-400 font-bold mb-4">
                   <Info size={14} />
-                  {results.nights} {results.nights === 1 ? 'noche' : 'noches'} • {data.guests} pers.
+                  Días de semana con 10% de descuento
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-6xl font-black text-white tracking-tighter">${results.total}</span>
+                  <span className="text-6xl font-black text-white tracking-tighter">${results.total.toFixed(0)}</span>
                   <span className="text-blue-400 font-bold text-base">USD</span>
                 </div>
               </div>
@@ -188,7 +218,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, s
               {results.discountAmount > 0 && (
                 <div className="text-right">
                   <div className="bg-emerald-500/30 text-emerald-300 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-tighter border border-emerald-500/30">
-                    Ahorraste ${results.discountAmount.toFixed(0)}
+                    Ahorro: ${results.discountAmount.toFixed(0)}
                   </div>
                 </div>
               )}
@@ -204,7 +234,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ isOpen, onClose, data, s
           </button>
 
           <p className="text-center text-gray-400 text-[11px] font-bold uppercase tracking-tighter">
-            * Consulta disponibilidad de fechas vía WhatsApp
+            * Sujeto a disponibilidad • Consulta vía WhatsApp
           </p>
         </div>
       </div>
